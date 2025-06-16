@@ -1,11 +1,8 @@
-
 import { Link } from "react-router-dom";
 import { ArrowRight, Code, Zap, Shield, Globe } from "lucide-react";
 import Navigation from "@/components/Navigation";
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       <Navigation />
       
       {/* Hero Section */}
@@ -20,10 +17,7 @@ const Index = () => {
             Discover, integrate, and monetize APIs with our minimalist platform designed for modern development workflows.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/explore"
-              className="inline-flex items-center px-8 py-3 bg-black text-white font-medium hover:bg-gray-800 transition-colors group"
-            >
+            <Link to="/explore" className="inline-flex items-center px-8 py-3 bg-black text-white font-medium hover:bg-gray-800 transition-colors group">
               Explore APIs
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -83,16 +77,8 @@ const Index = () => {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-black mb-4">Ready to get started?</h2>
           <p className="text-xl text-gray-600 mb-8">Join thousands of developers building with apity.</p>
-          <div className="bg-gray-50 p-8 font-mono text-sm text-left max-w-2xl mx-auto mb-8">
-            <div className="text-gray-600 mb-2"># Install the apity CLI</div>
-            <div className="text-black">npm install -g @apity/cli</div>
-            <div className="text-gray-600 mt-4 mb-2"># Get your first API</div>
-            <div className="text-black">apity get weather-api</div>
-          </div>
-          <Link
-            to="/explore"
-            className="inline-flex items-center px-8 py-3 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
-          >
+          
+          <Link to="/explore" className="inline-flex items-center px-8 py-3 bg-black text-white font-medium hover:bg-gray-800 transition-colors">
             Start exploring
           </Link>
         </div>
@@ -113,8 +99,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
