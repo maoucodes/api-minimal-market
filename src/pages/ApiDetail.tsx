@@ -1,89 +1,144 @@
 
 import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Star, Users, Shield, Zap, Copy, ExternalLink } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface ApiData {
+  name: string;
+  version: string;
+  description: string;
+  reliability: string;
+  avg_response_time: string;
+  rating: number;
+  users: number;
+  last_updated: string;
+  quick_start: string;
+  endpoint: {
+    method: string;
+    path: string;
+    parameters: Array<{
+      name: string;
+      type: string;
+      location: string;
+      required: string;
+    }>;
+    example: string;
+    response: {
+      status: string;
+      error: string;
+    };
+  };
+}
+
+const fetchApis = async (): Promise<ApiData[]> => {
+  const response = await fetch('http://127.0.0.1:8000/api/explore');
+  if (!response.ok) {
+    throw new Error('Failed to fetch APIs');
+  }
+  return response.json();
+};
 
 const ApiDetail = () => {
   const { id } = useParams();
+  
+  const { data: apis, isLoading, error } = useQuery({
+    queryKey: ['apis'],
+    queryFn: fetchApis,
+  });
 
-  // Mock API data
-  const apiData = {
-    name: "Weather Pro API",
-    description: "Get real-time weather data, 7-day forecasts, and historical weather information for any location worldwide.",
-    category: "Weather",
-    rating: 4.8,
-    users: "12.3k",
-    version: "v2.1.0",
-    lastUpdated: "2 days ago",
-    pricing: "Free tier available",
-    provider: "WeatherTech Solutions",
-    reliability: "99.9%",
-    avgResponse: "85ms"
+  const getApiSlug = (name: string) => {
+    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };
 
-  const codeExample = `import axios from 'axios';
-
-const API_KEY = 'your_api_key_here';
-const BASE_URL = 'https://api.apity.dev/weather-pro/v2';
-
-// Get current weather
-const getCurrentWeather = async (city) => {
-  try {
-    const response = await axios.get(\`\${BASE_URL}/current\`, {
-      headers: {
-        'Authorization': \`Bearer \${API_KEY}\`,
-        'Content-Type': 'application/json'
-      },
-      params: {
-        location: city,
-        units: 'metric'
-      }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching weather:', error);
-  }
-};
-
-// Usage
-getCurrentWeather('New York').then(data => {
-  console.log(\`Temperature: \${data.temperature}°C\`);
-});`;
-
-  const endpoints = [
-    {
-      method: "GET",
-      path: "/current",
-      description: "Get current weather conditions",
-      params: "location, units"
-    },
-    {
-      method: "GET", 
-      path: "/forecast",
-      description: "Get 7-day weather forecast",
-      params: "location, days, units"
-    },
-    {
-      method: "GET",
-      path: "/history",
-      description: "Get historical weather data",
-      params: "location, date_from, date_to"
+  const formatUsers = (users: number) => {
+    if (users >= 1000) {
+      return `${(users / 1000).toFixed(1)}k`;
     }
-  ];
+    return users.toString();
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return "1 day ago";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
+  const apiData = apis?.find(api => getApiSlug(api.name) === id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-6 w-32 mb-8" />
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Skeleton className="h-8 w-3/4 mb-4" />
+              <Skeleton className="h-20 w-full mb-8" />
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full" />
+                ))}
+              </div>
+              <Skeleton className="h-64 w-full" />
+            </div>
+            <div className="space-y-6">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !apiData) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Link
+            to="/explore"
+            className="inline-flex items-center text-gray-600 hover:text-black mb-8 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to explore
+          </Link>
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold text-black mb-4">API Not Found</h1>
+            <p className="text-gray-600">The API you're looking for doesn't exist or couldn't be loaded.</p>
+            <Link
+              to="/explore"
+              className="inline-block mt-4 px-6 py-2 bg-black text-white hover:bg-gray-800 transition-colors"
+            >
+              Browse APIs
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const pricingTiers = [
     {
       name: "Free",
       price: "$0",
       requests: "1,000/month",
-      features: ["Basic weather data", "Email support", "Rate limiting: 10/min"]
+      features: ["Basic API access", "Email support", "Rate limiting: 10/min"]
     },
     {
       name: "Pro",
       price: "$29",
       requests: "100,000/month", 
-      features: ["All weather data", "Priority support", "Rate limiting: 1000/min", "Historical data"]
+      features: ["Full API access", "Priority support", "Rate limiting: 1000/min", "Analytics dashboard"]
     },
     {
       name: "Enterprise",
@@ -128,9 +183,9 @@ getCurrentWeather('New York').then(data => {
                 </div>
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {apiData.users} users
+                  {formatUsers(apiData.users)} users
                 </div>
-                <span>Updated {apiData.lastUpdated}</span>
+                <span>Updated {formatDate(apiData.last_updated)}</span>
               </div>
             </div>
 
@@ -148,14 +203,14 @@ getCurrentWeather('New York').then(data => {
                   <Zap className="h-5 w-5 mr-2" />
                   <span className="font-medium">Avg Response</span>
                 </div>
-                <div className="text-2xl font-bold">{apiData.avgResponse}</div>
+                <div className="text-2xl font-bold">{apiData.avg_response_time}</div>
               </div>
               <div className="bg-gray-50 p-4">
                 <div className="flex items-center mb-2">
                   <Users className="h-5 w-5 mr-2" />
                   <span className="font-medium">Active Users</span>
                 </div>
-                <div className="text-2xl font-bold">{apiData.users}</div>
+                <div className="text-2xl font-bold">{formatUsers(apiData.users)}</div>
               </div>
             </div>
 
@@ -169,28 +224,40 @@ getCurrentWeather('New York').then(data => {
                 </button>
               </div>
               <div className="bg-gray-900 text-gray-300 p-6 font-mono text-sm overflow-x-auto">
-                <pre>{codeExample}</pre>
+                <pre>{apiData.quick_start}</pre>
               </div>
             </div>
 
             {/* Endpoints */}
             <div className="mb-8">
-              <h2 className="text-xl font-bold mb-4">API Endpoints</h2>
-              <div className="space-y-3">
-                {endpoints.map((endpoint, index) => (
-                  <div key={index} className="border border-gray-200 p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="bg-gray-900 text-white px-2 py-1 text-xs font-mono mr-3">
-                        {endpoint.method}
+              <h2 className="text-xl font-bold mb-4">API Endpoint</h2>
+              <div className="border border-gray-200 p-4">
+                <div className="flex items-center mb-2">
+                  <span className="bg-gray-900 text-white px-2 py-1 text-xs font-mono mr-3">
+                    {apiData.endpoint.method}
+                  </span>
+                  <code className="text-sm font-mono">{apiData.endpoint.path}</code>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Example: <code>{apiData.endpoint.example}</code>
+                </p>
+                
+                <h4 className="font-medium mb-2">Parameters:</h4>
+                <div className="space-y-2">
+                  {apiData.endpoint.parameters.map((param, index) => (
+                    <div key={index} className="flex items-center text-sm">
+                      <code className="bg-gray-100 px-2 py-1 mr-2 text-xs">{param.name}</code>
+                      <span className="text-gray-600">
+                        {param.type} • {param.location} • {param.required === "true" ? "required" : "optional"}
                       </span>
-                      <code className="text-sm font-mono">{endpoint.path}</code>
                     </div>
-                    <p className="text-gray-700 text-sm mb-2">{endpoint.description}</p>
-                    <p className="text-xs text-gray-500">
-                      Parameters: <code>{endpoint.params}</code>
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                <h4 className="font-medium mt-4 mb-2">Response:</h4>
+                <div className="bg-gray-50 p-3 text-sm">
+                  <pre>{JSON.stringify(apiData.endpoint.response, null, 2)}</pre>
+                </div>
               </div>
             </div>
           </div>
@@ -231,12 +298,25 @@ getCurrentWeather('New York').then(data => {
 
             {/* Provider Info */}
             <div className="border border-gray-200 p-6">
-              <h3 className="font-bold mb-4">Provider</h3>
-              <p className="text-sm text-gray-700 mb-3">{apiData.provider}</p>
-              <button className="flex items-center text-sm text-gray-600 hover:text-black transition-colors">
-                <ExternalLink className="h-4 w-4 mr-1" />
-                View profile
-              </button>
+              <h3 className="font-bold mb-4">API Info</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Version:</span>
+                  <span>{apiData.version}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Reliability:</span>
+                  <span>{apiData.reliability}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Response Time:</span>
+                  <span>{apiData.avg_response_time}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Last Updated:</span>
+                  <span>{formatDate(apiData.last_updated)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
