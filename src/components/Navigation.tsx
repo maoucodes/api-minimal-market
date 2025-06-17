@@ -25,6 +25,16 @@ const Navigation = () => {
               >
                 Explore
               </Link>
+              <Link
+                to="/admin"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === "/admin"
+                    ? "text-black"
+                    : "text-gray-600 hover:text-black"
+                }`}
+              >
+                Admin
+              </Link>
               <a
                 href="#"
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"

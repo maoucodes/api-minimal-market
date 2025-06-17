@@ -1,212 +1,207 @@
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Search, Filter, Star, Users, Clock } from "lucide-react";
+import { Search, Filter, Star, Users, Zap, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
-import { Skeleton } from "@/components/ui/skeleton";
-
-interface ApiData {
-  name: string;
-  version: string;
-  description: string;
-  reliability: string;
-  avg_response_time: string;
-  rating: number;
-  users: number;
-  last_updated: string;
-  quick_start: string;
-  endpoint: {
-    method: string;
-    path: string;
-    parameters: Array<{
-      name: string;
-      type: string;
-      location: string;
-      required: string;
-    }>;
-    example: string;
-    response: {
-      status: string;
-      error: string;
-    };
-  };
-}
-
-const fetchApis = async (): Promise<ApiData[]> => {
-  const response = await fetch('http://127.0.0.1:8000/api/explore');
-  if (!response.ok) {
-    throw new Error('Failed to fetch APIs');
-  }
-  return response.json();
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const Explore = () => {
-  const { data: apis, isLoading, error } = useQuery({
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+
+  const { data: apis = [], isLoading, error } = useQuery({
     queryKey: ['apis'],
-    queryFn: fetchApis,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('apis')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
   });
 
-  const categories = [
-    "All APIs",
-    "AI & ML",
-    "Finance",
-    "Weather",
-    "Social Media",
-    "E-commerce",
-    "Maps & Location",
-    "Communication"
-  ];
+  const filteredAPIs = apis
+    .filter(api => 
+      api.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (api.description && api.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0);
+        case "users":
+          return (b.users || 0) - (a.users || 0);
+        case "name":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
 
-  const formatUsers = (users: number) => {
-    if (users >= 1000) {
-      return `${(users / 1000).toFixed(1)}k`;
-    }
-    return users.toString();
-  };
-
-  const getApiSlug = (name: string) => {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Error loading APIs</h1>
+            <p className="text-gray-600">Please try again later.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Explore APIs</h1>
-          <p className="text-gray-600">Discover and integrate powerful APIs into your applications.</p>
+          <h1 className="text-4xl font-bold text-black mb-4">Explore APIs</h1>
+          <p className="text-xl text-gray-600">Discover and integrate powerful APIs for your projects</p>
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
+        {/* Search and Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
               placeholder="Search APIs..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:border-black transition-colors"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
           </div>
-          <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </button>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Sort by Name</SelectItem>
+              <SelectItem value="rating">Sort by Rating</SelectItem>
+              <SelectItem value="users">Sort by Popularity</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <div className="lg:w-64">
-            <div className="bg-gray-50 p-6">
-              <h3 className="font-semibold text-black mb-4">Categories</h3>
-              <div className="space-y-2">
-                {categories.map((category, index) => (
-                  <button
-                    key={category}
-                    className={`block w-full text-left px-3 py-2 text-sm transition-colors ${
-                      index === 0
-                        ? "bg-black text-white"
-                        : "text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardContent className="flex items-center p-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                <Zap className="h-6 w-6 text-blue-600" />
               </div>
-            </div>
-          </div>
+              <div>
+                <p className="text-2xl font-bold text-black">{apis.length}</p>
+                <p className="text-gray-600 text-sm">Total APIs</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="flex items-center p-6">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-black">
+                  {apis.filter(api => parseFloat(api.reliability?.replace('%', '') || '0') >= 99).length}
+                </p>
+                <p className="text-gray-600 text-sm">High Reliability</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="flex items-center p-6">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                <Users className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-black">
+                  {apis.reduce((sum, api) => sum + (api.users || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-gray-600 text-sm">Total Users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* API Grid */}
-          <div className="flex-1">
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-gray-600">
-                {isLoading ? "Loading..." : error ? "Error loading APIs" : `${apis?.length || 0} APIs found`}
+        {/* APIs Grid */}
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading APIs...</p>
+          </div>
+        ) : filteredAPIs.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">
+              {searchTerm ? `No APIs found matching "${searchTerm}"` : "No APIs available yet."}
+            </p>
+            {!searchTerm && (
+              <p className="text-gray-500 mt-2">
+                Visit the admin panel to add your first API.
               </p>
-              <select className="border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black">
-                <option>Sort by popularity</option>
-                <option>Sort by rating</option>
-                <option>Sort by newest</option>
-                <option>Sort by price</option>
-              </select>
-            </div>
-
-            {isLoading ? (
-              <div className="grid md:grid-cols-2 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="border border-gray-200 p-6">
-                    <Skeleton className="h-6 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-4" />
-                    <Skeleton className="h-16 w-full mb-4" />
-                    <div className="flex justify-between">
-                      <div className="flex space-x-4">
-                        <Skeleton className="h-4 w-12" />
-                        <Skeleton className="h-4 w-12" />
-                      </div>
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">Failed to load APIs. Please try again later.</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {apis?.map((api) => (
-                  <Link
-                    key={getApiSlug(api.name)}
-                    to={`/api/${getApiSlug(api.name)}`}
-                    className="group border border-gray-200 p-6 hover:border-black transition-colors block"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-black group-hover:underline mb-1">
-                          {api.name}
-                        </h3>
-                        <span className="text-xs text-gray-500 font-mono">{api.version}</span>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-700 text-sm mb-4 leading-relaxed">
-                      {api.description}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center">
-                          <Star className="h-3 w-3 mr-1 fill-current" />
-                          {api.rating}
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="h-3 w-3 mr-1" />
-                          {formatUsers(api.users)}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {api.avg_response_time}
-                        </div>
-                      </div>
-                      <div className="text-black font-medium">
-                        {api.reliability}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Load More */}
-            {!isLoading && !error && (
-              <div className="text-center mt-12">
-                <button className="px-6 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-                  Load more APIs
-                </button>
-              </div>
             )}
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAPIs.map((api) => (
+              <Card key={api.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{api.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {api.description || "No description available"}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline">{api.version}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                        <span>{api.rating || 0}/5</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Users className="h-4 w-4 mr-1" />
+                        <span>{(api.users || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Reliability:</span>
+                        <p className="font-medium">{api.reliability || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Response:</span>
+                        <p className="font-medium">{api.avg_response_time || 'N/A'}</p>
+                      </div>
+                    </div>
+                    
+                    <Link to={`/api/${api.id}`} className="block">
+                      <Button className="w-full mt-4">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
