@@ -4,53 +4,29 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Star, Users, Shield, Zap, Copy, ExternalLink } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface ApiData {
-  name: string;
-  version: string;
-  description: string;
-  reliability: string;
-  avg_response_time: string;
-  rating: number;
-  users: number;
-  last_updated: string;
-  quick_start: string;
-  endpoint: {
-    method: string;
-    path: string;
-    parameters: Array<{
-      name: string;
-      type: string;
-      location: string;
-      required: string;
-    }>;
-    example: string;
-    response: {
-      status: string;
-      error: string;
-    };
-  };
-}
-
-const fetchApis = async (): Promise<ApiData[]> => {
-  const response = await fetch('http://127.0.0.1:8000/api/explore');
-  if (!response.ok) {
-    throw new Error('Failed to fetch APIs');
-  }
-  return response.json();
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const ApiDetail = () => {
   const { id } = useParams();
   
-  const { data: apis, isLoading, error } = useQuery({
-    queryKey: ['apis'],
-    queryFn: fetchApis,
+  const { data: apiData, isLoading, error } = useQuery({
+    queryKey: ['api', id],
+    queryFn: async () => {
+      if (!id) throw new Error('No API ID provided');
+      
+      const { data, error } = await supabase
+        .from('apis')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) throw new Error('API not found');
+      
+      return data;
+    },
+    enabled: !!id,
   });
-
-  const getApiSlug = (name: string) => {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  };
 
   const formatUsers = (users: number) => {
     if (users >= 1000) {
@@ -70,8 +46,6 @@ const ApiDetail = () => {
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     return date.toLocaleDateString();
   };
-
-  const apiData = apis?.find(api => getApiSlug(api.name) === id);
 
   if (isLoading) {
     return (
@@ -148,6 +122,18 @@ const ApiDetail = () => {
     }
   ];
 
+  // Parse JSON fields safely
+  const parseJsonField = (field: any, fallback: any) => {
+    try {
+      return typeof field === 'string' ? JSON.parse(field) : field || fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const endpointParameters = parseJsonField(apiData.endpoint_parameters, []);
+  const endpointResponse = parseJsonField(apiData.endpoint_response, {});
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
@@ -174,16 +160,16 @@ const ApiDetail = () => {
                 </span>
               </div>
               <p className="text-gray-700 text-lg leading-relaxed mb-4">
-                {apiData.description}
+                {apiData.description || "No description available"}
               </p>
               <div className="flex items-center space-x-6 text-sm text-gray-600">
                 <div className="flex items-center">
                   <Star className="h-4 w-4 mr-1 fill-current" />
-                  {apiData.rating} rating
+                  {apiData.rating || 0} rating
                 </div>
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {formatUsers(apiData.users)} users
+                  {formatUsers(apiData.users || 0)} users
                 </div>
                 <span>Updated {formatDate(apiData.last_updated)}</span>
               </div>
@@ -196,37 +182,39 @@ const ApiDetail = () => {
                   <Shield className="h-5 w-5 mr-2" />
                   <span className="font-medium">Reliability</span>
                 </div>
-                <div className="text-2xl font-bold">{apiData.reliability}</div>
+                <div className="text-2xl font-bold">{apiData.reliability || 'N/A'}</div>
               </div>
               <div className="bg-gray-50 p-4">
                 <div className="flex items-center mb-2">
                   <Zap className="h-5 w-5 mr-2" />
                   <span className="font-medium">Avg Response</span>
                 </div>
-                <div className="text-2xl font-bold">{apiData.avg_response_time}</div>
+                <div className="text-2xl font-bold">{apiData.avg_response_time || 'N/A'}</div>
               </div>
               <div className="bg-gray-50 p-4">
                 <div className="flex items-center mb-2">
                   <Users className="h-5 w-5 mr-2" />
                   <span className="font-medium">Active Users</span>
                 </div>
-                <div className="text-2xl font-bold">{formatUsers(apiData.users)}</div>
+                <div className="text-2xl font-bold">{formatUsers(apiData.users || 0)}</div>
               </div>
             </div>
 
             {/* Code Example */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Quick Start</h2>
-                <button className="flex items-center text-sm text-gray-600 hover:text-black transition-colors">
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </button>
+            {apiData.quick_start && (
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Quick Start</h2>
+                  <button className="flex items-center text-sm text-gray-600 hover:text-black transition-colors">
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </button>
+                </div>
+                <div className="bg-gray-900 text-gray-300 p-6 font-mono text-sm overflow-x-auto">
+                  <pre>{apiData.quick_start}</pre>
+                </div>
               </div>
-              <div className="bg-gray-900 text-gray-300 p-6 font-mono text-sm overflow-x-auto">
-                <pre>{apiData.quick_start}</pre>
-              </div>
-            </div>
+            )}
 
             {/* Endpoints */}
             <div className="mb-8">
@@ -234,29 +222,35 @@ const ApiDetail = () => {
               <div className="border border-gray-200 p-4">
                 <div className="flex items-center mb-2">
                   <span className="bg-gray-900 text-white px-2 py-1 text-xs font-mono mr-3">
-                    {apiData.endpoint.method}
+                    {apiData.endpoint_method || 'GET'}
                   </span>
-                  <code className="text-sm font-mono">{apiData.endpoint.path}</code>
+                  <code className="text-sm font-mono">{apiData.endpoint_path || '/api/endpoint'}</code>
                 </div>
-                <p className="text-xs text-gray-500 mb-3">
-                  Example: <code>{apiData.endpoint.example}</code>
-                </p>
+                {apiData.endpoint_example && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    Example: <code>{apiData.endpoint_example}</code>
+                  </p>
+                )}
                 
-                <h4 className="font-medium mb-2">Parameters:</h4>
-                <div className="space-y-2">
-                  {apiData.endpoint.parameters.map((param, index) => (
-                    <div key={index} className="flex items-center text-sm">
-                      <code className="bg-gray-100 px-2 py-1 mr-2 text-xs">{param.name}</code>
-                      <span className="text-gray-600">
-                        {param.type} • {param.location} • {param.required === "true" ? "required" : "optional"}
-                      </span>
+                {endpointParameters.length > 0 && (
+                  <>
+                    <h4 className="font-medium mb-2">Parameters:</h4>
+                    <div className="space-y-2">
+                      {endpointParameters.map((param: any, index: number) => (
+                        <div key={index} className="flex items-center text-sm">
+                          <code className="bg-gray-100 px-2 py-1 mr-2 text-xs">{param.name || 'param'}</code>
+                          <span className="text-gray-600">
+                            {param.type || 'string'} • {param.location || 'query'} • {param.required === "true" ? "required" : "optional"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
 
                 <h4 className="font-medium mt-4 mb-2">Response:</h4>
                 <div className="bg-gray-50 p-3 text-sm">
-                  <pre>{JSON.stringify(apiData.endpoint.response, null, 2)}</pre>
+                  <pre>{JSON.stringify(endpointResponse, null, 2)}</pre>
                 </div>
               </div>
             </div>
@@ -306,11 +300,11 @@ const ApiDetail = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Reliability:</span>
-                  <span>{apiData.reliability}</span>
+                  <span>{apiData.reliability || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Response Time:</span>
-                  <span>{apiData.avg_response_time}</span>
+                  <span>{apiData.avg_response_time || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last Updated:</span>
