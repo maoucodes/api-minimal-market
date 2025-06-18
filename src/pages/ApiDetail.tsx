@@ -1,3 +1,4 @@
+
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Star, Users, Shield, Zap, Copy, ExternalLink, Code, FileText } from "lucide-react";
@@ -134,6 +135,9 @@ const ApiDetail = () => {
   const endpointParameters = parseJsonField(apiData.endpoint_parameters, []);
   const endpointResponse = parseJsonField(apiData.endpoint_response, {});
 
+  // Safely access quick_start_python with fallback
+  const quickStartPython = (apiData as any).quick_start_python || "";
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
@@ -214,7 +218,7 @@ const ApiDetail = () => {
             </div>
 
             {/* Code Examples */}
-            {(apiData.quick_start || apiData.quick_start_python) && (
+            {(apiData.quick_start || quickStartPython) && (
               <div className="mb-8">
                 <h2 className="text-xl font-bold mb-4">Quick Start</h2>
                 <Tabs defaultValue={apiData.quick_start ? "js" : "python"} className="w-full">
@@ -225,7 +229,7 @@ const ApiDetail = () => {
                         JavaScript
                       </TabsTrigger>
                     )}
-                    {apiData.quick_start_python && (
+                    {quickStartPython && (
                       <TabsTrigger value="python" className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         Python
@@ -250,18 +254,18 @@ const ApiDetail = () => {
                     </TabsContent>
                   )}
                   
-                  {apiData.quick_start_python && (
+                  {quickStartPython && (
                     <TabsContent value="python">
                       <div className="relative">
                         <button 
                           className="absolute top-4 right-4 flex items-center text-sm text-gray-400 hover:text-gray-200 transition-colors z-10"
-                          onClick={() => navigator.clipboard.writeText(apiData.quick_start_python)}
+                          onClick={() => navigator.clipboard.writeText(quickStartPython)}
                         >
                           <Copy className="h-4 w-4 mr-1" />
                           Copy
                         </button>
                         <div className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto">
-                          <pre className="whitespace-pre-wrap">{apiData.quick_start_python}</pre>
+                          <pre className="whitespace-pre-wrap">{quickStartPython}</pre>
                         </div>
                       </div>
                     </TabsContent>

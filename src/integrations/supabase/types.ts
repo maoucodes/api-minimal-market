@@ -70,6 +70,7 @@ export type Database = {
           name: string
           pricing_model: string | null
           quick_start: string | null
+          quick_start_python: string | null
           rate_limit: number | null
           rating: number | null
           reliability: string | null
@@ -94,6 +95,7 @@ export type Database = {
           name: string
           pricing_model?: string | null
           quick_start?: string | null
+          quick_start_python?: string | null
           rate_limit?: number | null
           rating?: number | null
           reliability?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           name?: string
           pricing_model?: string | null
           quick_start?: string | null
+          quick_start_python?: string | null
           rate_limit?: number | null
           rating?: number | null
           reliability?: string | null
