@@ -1,9 +1,27 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Search, Terminal } from "lucide-react";
+import { Search, Terminal, User, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navigation = () => {
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <nav className="border-b border-gray-200 bg-white">
@@ -25,6 +43,18 @@ const Navigation = () => {
               >
                 Explore
               </Link>
+              {user && (
+                <Link
+                  to="/dashboard"
+                  className={`text-sm font-medium transition-colors ${
+                    location.pathname === "/dashboard"
+                      ? "text-black"
+                      : "text-gray-600 hover:text-black"
+                  }`}
+                >
+                  Dashboard
+                </Link>
+              )}
               <Link
                 to="/admin"
                 className={`text-sm font-medium transition-colors ${
@@ -53,12 +83,42 @@ const Navigation = () => {
             <button className="p-2 text-gray-600 hover:text-black transition-colors">
               <Search className="h-5 w-5" />
             </button>
-            <button className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-              Sign In
-            </button>
-            <button className="px-4 py-2 text-sm font-medium bg-black text-white hover:bg-gray-800 transition-colors">
-              Get Started
-            </button>
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+                      <AvatarFallback>
+                        {profile?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost">Sign In</Button>
+                </Link>
+                <Link to="/auth">
+                  <Button>Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

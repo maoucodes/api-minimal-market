@@ -9,11 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_calls: {
+        Row: {
+          api_id: string
+          created_at: string
+          credits_used: number | null
+          endpoint: string | null
+          id: string
+          method: string | null
+          response_time: number | null
+          status_code: number | null
+          user_id: string
+        }
+        Insert: {
+          api_id: string
+          created_at?: string
+          credits_used?: number | null
+          endpoint?: string | null
+          id?: string
+          method?: string | null
+          response_time?: number | null
+          status_code?: number | null
+          user_id: string
+        }
+        Update: {
+          api_id?: string
+          created_at?: string
+          credits_used?: number | null
+          endpoint?: string | null
+          id?: string
+          method?: string | null
+          response_time?: number | null
+          status_code?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_calls_api_id_fkey"
+            columns: ["api_id"]
+            isOneToOne: false
+            referencedRelation: "apis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apis: {
         Row: {
           avg_response_time: string | null
+          category: string | null
           created_at: string
           description: string | null
+          documentation_url: string | null
           endpoint_example: string | null
           endpoint_method: string | null
           endpoint_parameters: Json | null
@@ -22,17 +68,22 @@ export type Database = {
           id: string
           last_updated: string
           name: string
+          pricing_model: string | null
           quick_start: string | null
+          rate_limit: number | null
           rating: number | null
           reliability: string | null
+          status: string | null
           updated_at: string
           users: number | null
           version: string
         }
         Insert: {
           avg_response_time?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
+          documentation_url?: string | null
           endpoint_example?: string | null
           endpoint_method?: string | null
           endpoint_parameters?: Json | null
@@ -41,17 +92,22 @@ export type Database = {
           id?: string
           last_updated?: string
           name: string
+          pricing_model?: string | null
           quick_start?: string | null
+          rate_limit?: number | null
           rating?: number | null
           reliability?: string | null
+          status?: string | null
           updated_at?: string
           users?: number | null
           version?: string
         }
         Update: {
           avg_response_time?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
+          documentation_url?: string | null
           endpoint_example?: string | null
           endpoint_method?: string | null
           endpoint_parameters?: Json | null
@@ -60,12 +116,48 @@ export type Database = {
           id?: string
           last_updated?: string
           name?: string
+          pricing_model?: string | null
           quick_start?: string | null
+          rate_limit?: number | null
           rating?: number | null
           reliability?: string | null
+          status?: string | null
           updated_at?: string
           users?: number | null
           version?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          api_key: string
+          avatar_url: string | null
+          created_at: string
+          credits: number
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string
+          avatar_url?: string | null
+          created_at?: string
+          credits?: number
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          avatar_url?: string | null
+          created_at?: string
+          credits?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -1,9 +1,9 @@
-
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Star, Users, Shield, Zap, Copy, ExternalLink } from "lucide-react";
+import { ArrowLeft, Star, Users, Shield, Zap, Copy, ExternalLink, Code, FileText } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
 const ApiDetail = () => {
@@ -109,9 +109,9 @@ const ApiDetail = () => {
       features: ["Basic API access", "Email support", "Rate limiting: 10/min"]
     },
     {
-      name: "Pro",
+      name: "Pro", 
       price: "$29",
-      requests: "100,000/month", 
+      requests: "100,000/month",
       features: ["Full API access", "Priority support", "Rate limiting: 1000/min", "Analytics dashboard"]
     },
     {
@@ -158,6 +158,19 @@ const ApiDetail = () => {
                 <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono">
                   {apiData.version}
                 </span>
+                {apiData.category && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    {apiData.category}
+                  </span>
+                )}
+                <span className={`px-2 py-1 text-xs rounded ${
+                  apiData.status === 'active' ? 'bg-green-100 text-green-800' :
+                  apiData.status === 'beta' ? 'bg-yellow-100 text-yellow-800' :
+                  apiData.status === 'deprecated' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {apiData.status}
+                </span>
               </div>
               <p className="text-gray-700 text-lg leading-relaxed mb-4">
                 {apiData.description || "No description available"}
@@ -194,28 +207,66 @@ const ApiDetail = () => {
               <div className="bg-gray-50 p-4">
                 <div className="flex items-center mb-2">
                   <Users className="h-5 w-5 mr-2" />
-                  <span className="font-medium">Active Users</span>
+                  <span className="font-medium">Rate Limit</span>
                 </div>
-                <div className="text-2xl font-bold">{formatUsers(apiData.users || 0)}</div>
+                <div className="text-2xl font-bold">{apiData.rate_limit || 'N/A'}/hr</div>
               </div>
             </div>
 
-            {/* Code Example */}
-            {apiData.quick_start && (
+            {/* Code Examples */}
+            {(apiData.quick_start || apiData.quick_start_python) && (
               <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Quick Start</h2>
-                  <button 
-                    className="flex items-center text-sm text-gray-600 hover:text-black transition-colors"
-                    onClick={() => navigator.clipboard.writeText(apiData.quick_start)}
-                  >
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copy
-                  </button>
-                </div>
-                <div className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto">
-                  <pre className="whitespace-pre-wrap">{apiData.quick_start}</pre>
-                </div>
+                <h2 className="text-xl font-bold mb-4">Quick Start</h2>
+                <Tabs defaultValue={apiData.quick_start ? "js" : "python"} className="w-full">
+                  <TabsList>
+                    {apiData.quick_start && (
+                      <TabsTrigger value="js" className="flex items-center gap-2">
+                        <Code className="h-4 w-4" />
+                        JavaScript
+                      </TabsTrigger>
+                    )}
+                    {apiData.quick_start_python && (
+                      <TabsTrigger value="python" className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Python
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                  
+                  {apiData.quick_start && (
+                    <TabsContent value="js">
+                      <div className="relative">
+                        <button 
+                          className="absolute top-4 right-4 flex items-center text-sm text-gray-400 hover:text-gray-200 transition-colors z-10"
+                          onClick={() => navigator.clipboard.writeText(apiData.quick_start)}
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </button>
+                        <div className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto">
+                          <pre className="whitespace-pre-wrap">{apiData.quick_start}</pre>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  )}
+                  
+                  {apiData.quick_start_python && (
+                    <TabsContent value="python">
+                      <div className="relative">
+                        <button 
+                          className="absolute top-4 right-4 flex items-center text-sm text-gray-400 hover:text-gray-200 transition-colors z-10"
+                          onClick={() => navigator.clipboard.writeText(apiData.quick_start_python)}
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </button>
+                        <div className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto">
+                          <pre className="whitespace-pre-wrap">{apiData.quick_start_python}</pre>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  )}
+                </Tabs>
               </div>
             )}
 
@@ -267,9 +318,17 @@ const ApiDetail = () => {
               <button className="w-full bg-black text-white py-2 mb-3 hover:bg-gray-800 transition-colors">
                 Get API Key
               </button>
-              <button className="w-full border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 transition-colors">
-                View Documentation
-              </button>
+              {apiData.documentation_url && (
+                <a 
+                  href={apiData.documentation_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full border border-gray-300 py-2 text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center"
+                >
+                  View Documentation
+                  <ExternalLink className="h-4 w-4 ml-2" />
+                </a>
+              )}
             </div>
 
             {/* Pricing */}
@@ -300,6 +359,22 @@ const ApiDetail = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Version:</span>
                   <span>{apiData.version}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Category:</span>
+                  <span>{apiData.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Status:</span>
+                  <span className="capitalize">{apiData.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Pricing:</span>
+                  <span className="capitalize">{apiData.pricing_model}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Rate Limit:</span>
+                  <span>{apiData.rate_limit}/hr</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Reliability:</span>

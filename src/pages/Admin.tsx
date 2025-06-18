@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, Plus } from "lucide-react";
+import { Trash2, Edit, Plus, Code, FileText } from "lucide-react";
 import Navigation from "@/components/Navigation";
 
 interface ApiData {
@@ -17,34 +18,47 @@ interface ApiData {
   name: string;
   version: string;
   description: string;
+  category: string;
+  status: string;
+  pricing_model: string;
+  rate_limit: number;
   reliability: string;
   avg_response_time: string;
   rating: number;
   users: number;
   quick_start: string;
+  quick_start_python: string;
   endpoint_method: string;
   endpoint_path: string;
   endpoint_parameters: any[];
   endpoint_example: string;
   endpoint_response: any;
+  documentation_url: string;
 }
 
 const Admin = () => {
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("js");
   const [formData, setFormData] = useState<ApiData>({
     name: "",
     version: "v1.0.0",
     description: "",
+    category: "General",
+    status: "active",
+    pricing_model: "free",
+    rate_limit: 1000,
     reliability: "99%",
     avg_response_time: "100ms",
     rating: 4.5,
     users: 0,
     quick_start: "",
+    quick_start_python: "",
     endpoint_method: "GET",
     endpoint_path: "",
     endpoint_parameters: [],
     endpoint_example: "",
-    endpoint_response: {}
+    endpoint_response: {},
+    documentation_url: ""
   });
 
   const { toast } = useToast();
@@ -151,16 +165,22 @@ const Admin = () => {
       name: "",
       version: "v1.0.0",
       description: "",
+      category: "General",
+      status: "active",
+      pricing_model: "free",
+      rate_limit: 1000,
       reliability: "99%",
       avg_response_time: "100ms",
       rating: 4.5,
       users: 0,
       quick_start: "",
+      quick_start_python: "",
       endpoint_method: "GET",
       endpoint_path: "",
       endpoint_parameters: [],
       endpoint_example: "",
-      endpoint_response: {}
+      endpoint_response: {},
+      documentation_url: ""
     });
   };
 
@@ -175,7 +195,10 @@ const Admin = () => {
   };
 
   const handleEdit = (api: any) => {
-    setFormData(api);
+    setFormData({
+      ...api,
+      quick_start_python: api.quick_start_python || ""
+    });
     setIsEditing(api.id);
   };
 
@@ -204,8 +227,9 @@ const Admin = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="name">API Name</Label>
                   <Input
@@ -225,6 +249,85 @@ const Admin = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="General">General</SelectItem>
+                      <SelectItem value="AI/ML">AI/ML</SelectItem>
+                      <SelectItem value="Data">Data</SelectItem>
+                      <SelectItem value="Payment">Payment</SelectItem>
+                      <SelectItem value="Social">Social</SelectItem>
+                      <SelectItem value="Communication">Communication</SelectItem>
+                      <SelectItem value="Utility">Utility</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="beta">Beta</SelectItem>
+                      <SelectItem value="deprecated">Deprecated</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="pricing_model">Pricing Model</Label>
+                  <Select value={formData.pricing_model} onValueChange={(value) => setFormData({ ...formData, pricing_model: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="freemium">Freemium</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="rate_limit">Rate Limit (per hour)</Label>
+                  <Input
+                    id="rate_limit"
+                    type="number"
+                    value={formData.rate_limit}
+                    onChange={(e) => setFormData({ ...formData, rate_limit: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="documentation_url">Documentation URL</Label>
+                <Input
+                  id="documentation_url"
+                  type="url"
+                  value={formData.documentation_url}
+                  onChange={(e) => setFormData({ ...formData, documentation_url: e.target.value })}
+                  placeholder="https://docs.example.com"
+                />
+              </div>
+
+              {/* Performance Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
                   <Label htmlFor="reliability">Reliability</Label>
                   <Input
                     id="reliability"
@@ -241,18 +344,6 @@ const Admin = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="rating">Rating</Label>
-                  <Input
-                    id="rating"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="5"
-                    value={formData.rating}
-                    onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) })}
-                  />
-                </div>
-                <div>
                   <Label htmlFor="users">Users</Label>
                   <Input
                     id="users"
@@ -262,27 +353,41 @@ const Admin = () => {
                   />
                 </div>
               </div>
-              
+
+              {/* Quick Start Guides */}
               <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
+                <Label>Quick Start Guides</Label>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+                  <TabsList>
+                    <TabsTrigger value="js" className="flex items-center gap-2">
+                      <Code className="h-4 w-4" />
+                      JavaScript
+                    </TabsTrigger>
+                    <TabsTrigger value="python" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Python
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="js">
+                    <Textarea
+                      value={formData.quick_start}
+                      onChange={(e) => setFormData({ ...formData, quick_start: e.target.value })}
+                      rows={6}
+                      placeholder="Enter JavaScript/Node.js code example..."
+                    />
+                  </TabsContent>
+                  <TabsContent value="python">
+                    <Textarea
+                      value={formData.quick_start_python}
+                      onChange={(e) => setFormData({ ...formData, quick_start_python: e.target.value })}
+                      rows={6}
+                      placeholder="Enter Python code example..."
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
 
-              <div>
-                <Label htmlFor="quick_start">Quick Start Guide</Label>
-                <Textarea
-                  id="quick_start"
-                  value={formData.quick_start}
-                  onChange={(e) => setFormData({ ...formData, quick_start: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
+              {/* Endpoint Configuration */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="endpoint_method">Endpoint Method</Label>
@@ -295,6 +400,7 @@ const Admin = () => {
                       <SelectItem value="POST">POST</SelectItem>
                       <SelectItem value="PUT">PUT</SelectItem>
                       <SelectItem value="DELETE">DELETE</SelectItem>
+                      <SelectItem value="PATCH">PATCH</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -340,7 +446,7 @@ const Admin = () => {
         {/* APIs List */}
         <Card>
           <CardHeader>
-            <CardTitle>Existing APIs</CardTitle>
+            <CardTitle>Existing APIs ({apis.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -350,32 +456,47 @@ const Admin = () => {
             ) : (
               <div className="space-y-4">
                 {apis.map((api: any) => (
-                  <div key={api.id} className="border rounded-lg p-4 flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{api.name}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{api.description}</p>
-                      <div className="flex gap-4 text-sm text-gray-500">
-                        <span>Version: {api.version}</span>
-                        <span>Rating: {api.rating}/5</span>
-                        <span>Users: {api.users}</span>
-                        <span>Reliability: {api.reliability}</span>
+                  <div key={api.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{api.name}</h3>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                            {api.version}
+                          </span>
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            api.status === 'active' ? 'bg-green-100 text-green-800' :
+                            api.status === 'beta' ? 'bg-yellow-100 text-yellow-800' :
+                            api.status === 'deprecated' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {api.status}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">{api.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(api)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(api.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(api)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(api.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                      <span>Category: {api.category}</span>
+                      <span>Users: {api.users}</span>
+                      <span>Reliability: {api.reliability}</span>
+                      <span>Response: {api.avg_response_time}</span>
                     </div>
                   </div>
                 ))}
