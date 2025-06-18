@@ -205,13 +205,16 @@ const ApiDetail = () => {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Quick Start</h2>
-                  <button className="flex items-center text-sm text-gray-600 hover:text-black transition-colors">
+                  <button 
+                    className="flex items-center text-sm text-gray-600 hover:text-black transition-colors"
+                    onClick={() => navigator.clipboard.writeText(apiData.quick_start)}
+                  >
                     <Copy className="h-4 w-4 mr-1" />
                     Copy
                   </button>
                 </div>
-                <div className="bg-gray-900 text-gray-300 p-6 font-mono text-sm overflow-x-auto">
-                  <pre>{apiData.quick_start}</pre>
+                <div className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto">
+                  <pre className="whitespace-pre-wrap">{apiData.quick_start}</pre>
                 </div>
               </div>
             )}
