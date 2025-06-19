@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Search, Filter, Star, Users, Zap, CheckCircle } from "lucide-react";
+import { Search, Filter, Star, Users, Zap, CheckCircle, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +21,7 @@ const Explore = () => {
       const { data, error } = await supabase
         .from('apis')
         .select('*')
+        .neq('category', 'Auto-generated')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -188,6 +189,13 @@ const Explore = () => {
                       <div>
                         <span className="text-gray-600">Response:</span>
                         <p className="font-medium">{api.avg_response_time || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm border-t pt-2">
+                      <div className="flex items-center text-blue-600">
+                        <CreditCard className="h-4 w-4 mr-1" />
+                        <span>{api.credits_required || 1} credit{(api.credits_required || 1) > 1 ? 's' : ''} per call</span>
                       </div>
                     </div>
                     

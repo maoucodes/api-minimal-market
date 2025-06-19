@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +33,7 @@ interface ApiData {
   endpoint_example: string;
   endpoint_response: any;
   documentation_url: string;
+  credits_required: number;
 }
 
 const Admin = () => {
@@ -58,7 +58,8 @@ const Admin = () => {
     endpoint_parameters: [],
     endpoint_example: "",
     endpoint_response: {},
-    documentation_url: ""
+    documentation_url: "",
+    credits_required: 1
   });
 
   const { toast } = useToast();
@@ -180,7 +181,8 @@ const Admin = () => {
       endpoint_parameters: [],
       endpoint_example: "",
       endpoint_response: {},
-      documentation_url: ""
+      documentation_url: "",
+      credits_required: 1
     });
   };
 
@@ -197,7 +199,8 @@ const Admin = () => {
   const handleEdit = (api: any) => {
     setFormData({
       ...api,
-      quick_start_python: api.quick_start_python || ""
+      quick_start_python: api.quick_start_python || "",
+      credits_required: api.credits_required || 1
     });
     setIsEditing(api.id);
   };
@@ -300,6 +303,16 @@ const Admin = () => {
                     type="number"
                     value={formData.rate_limit}
                     onChange={(e) => setFormData({ ...formData, rate_limit: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="credits_required">Credits Required</Label>
+                  <Input
+                    id="credits_required"
+                    type="number"
+                    min="1"
+                    value={formData.credits_required}
+                    onChange={(e) => setFormData({ ...formData, credits_required: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
@@ -426,6 +439,24 @@ const Admin = () => {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="endpoint_response">Response Structure (JSON)</Label>
+                <Textarea
+                  id="endpoint_response"
+                  value={typeof formData.endpoint_response === 'string' ? formData.endpoint_response : JSON.stringify(formData.endpoint_response, null, 2)}
+                  onChange={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      setFormData({ ...formData, endpoint_response: parsed });
+                    } catch {
+                      setFormData({ ...formData, endpoint_response: e.target.value });
+                    }
+                  }}
+                  rows={4}
+                  placeholder='{"message": "Success", "data": {...}}'
+                />
+              </div>
+
               <div className="flex gap-2">
                 <Button type="submit" disabled={createApiMutation.isPending || updateApiMutation.isPending}>
                   {isEditing ? "Update API" : "Create API"}
@@ -492,11 +523,12 @@ const Admin = () => {
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm text-gray-500">
                       <span>Category: {api.category}</span>
                       <span>Users: {api.users}</span>
                       <span>Reliability: {api.reliability}</span>
                       <span>Response: {api.avg_response_time}</span>
+                      <span>Credits: {api.credits_required || 1}</span>
                     </div>
                   </div>
                 ))}

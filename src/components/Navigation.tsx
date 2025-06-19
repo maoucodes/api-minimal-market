@@ -71,12 +71,6 @@ const Navigation = () => {
               >
                 Docs
               </a>
-              <a
-                href="#"
-                className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
-              >
-                Pricing
-              </a>
             </div>
           </div>
           <div className="flex items-center space-x-4">
