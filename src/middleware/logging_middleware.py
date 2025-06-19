@@ -3,7 +3,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 import time
 import uuid
-from ..utils.apiKeyValidation import log_api_call
+from ..utils.apiKeyValidation import log_api_call, supabase
 
 class APICallLoggingMiddleware:
     def __init__(self, app):
@@ -31,19 +31,22 @@ class APICallLoggingMiddleware:
                     if hasattr(request.state, 'user') and request.state.user:
                         user = request.state.user
                         
-                        # You'll need to determine the API ID based on your routing
-                        # For now, using a placeholder - you should map endpoints to API IDs
-                        api_id = await get_api_id_for_endpoint(request.url.path)
-                        
-                        await log_api_call(
-                            user_id=user['id'],
-                            api_id=api_id,
-                            endpoint=str(request.url.path),
-                            method=request.method,
-                            status_code=status_code,
-                            response_time_ms=response_time_ms,
-                            credits_used=1
+                        # Get or create API ID for this endpoint
+                        api_id = await get_or_create_api_id_for_endpoint(
+                            request.url.path, 
+                            request.method
                         )
+                        
+                        if api_id:
+                            await log_api_call(
+                                user_id=user['id'],
+                                api_id=api_id,
+                                endpoint=str(request.url.path),
+                                method=request.method,
+                                status_code=status_code,
+                                response_time_ms=response_time_ms,
+                                credits_used=1
+                            )
                 
                 await send(message)
             
@@ -51,14 +54,39 @@ class APICallLoggingMiddleware:
         else:
             await self.app(scope, receive, send)
 
-async def get_api_id_for_endpoint(endpoint_path: str) -> str:
+async def get_or_create_api_id_for_endpoint(endpoint_path: str, method: str) -> str:
     """
-    Map endpoint paths to API IDs from your database.
-    You should implement this based on your API structure.
+    Get or create API ID for the given endpoint path and method.
+    This will check if an API exists for this endpoint, and create one if it doesn't.
     """
-    # This is a placeholder - you should query your apis table
-    # to get the actual API ID based on the endpoint
-    
-    # For now, return a default API ID or create one
-    # You might want to create a mapping table or use the endpoint path
-    return str(uuid.uuid4())  # Placeholder - replace with actual logic
+    try:
+        # First, try to find an existing API for this endpoint
+        response = supabase.table('apis').select('id').eq('endpoint_path', endpoint_path).eq('endpoint_method', method).execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]['id']
+        
+        # If no API exists, create a new one
+        api_name = f"{method} {endpoint_path}"
+        api_data = {
+            'name': api_name,
+            'endpoint_path': endpoint_path,
+            'endpoint_method': method,
+            'description': f'Auto-generated API for {method} {endpoint_path}',
+            'category': 'Auto-generated',
+            'status': 'active',
+            'version': 'v1.0.0'
+        }
+        
+        create_response = supabase.table('apis').insert(api_data).execute()
+        
+        if create_response.data and len(create_response.data) > 0:
+            print(f"Created new API record for {method} {endpoint_path}")
+            return create_response.data[0]['id']
+        else:
+            print(f"Failed to create API record for {method} {endpoint_path}")
+            return None
+            
+    except Exception as e:
+        print(f"Error getting/creating API ID for {method} {endpoint_path}: {str(e)}")
+        return None

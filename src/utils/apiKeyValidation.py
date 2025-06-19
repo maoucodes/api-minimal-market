@@ -8,7 +8,7 @@ import time
 
 # Initialize Supabase client
 SUPABASE_URL = "https://teylvjdhzhrvokhdixqy.supabase.co"
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # You'll need to set this as an environment variable
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_SERVICE_KEY:
     raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
@@ -49,6 +49,7 @@ async def validate_api_key_and_deduct_credit(api_key: str) -> Tuple[bool, Option
             return False, user_profile, "Failed to deduct credit"
             
     except Exception as e:
+        print(f"Error validating API key: {str(e)}")
         return False, None, f"Error validating API key: {str(e)}"
 
 async def log_api_call(user_id: str, api_id: str, endpoint: str, method: str, 
@@ -68,8 +69,15 @@ async def log_api_call(user_id: str, api_id: str, endpoint: str, method: str,
             'created_at': datetime.utcnow().isoformat()
         }
         
+        print(f"Logging API call: {api_call_data}")
         response = supabase.table('api_calls').insert(api_call_data).execute()
-        return response.data
+        
+        if response.data:
+            print(f"Successfully logged API call for user {user_id}")
+            return response.data
+        else:
+            print(f"Failed to log API call: {response}")
+            return None
         
     except Exception as e:
         print(f"Error logging API call: {str(e)}")
