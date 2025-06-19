@@ -9,16 +9,25 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Copy, CreditCard, Activity, Key, User } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 const Dashboard = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const { data: apiCalls = [], isLoading } = useQuery({
+  useEffect(() => {
+    console.log('Dashboard - Auth state:', { user: user?.id, profile: profile?.id, authLoading });
+  }, [user, profile, authLoading]);
+
+  const { data: apiCalls = [], isLoading: apiCallsLoading, error: apiCallsError } = useQuery({
     queryKey: ['api-calls', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('No user ID for API calls query');
+        return [];
+      }
       
+      console.log('Fetching API calls for user:', user.id);
       const { data, error } = await supabase
         .from('api_calls')
         .select(`
@@ -29,10 +38,15 @@ const Dashboard = () => {
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching API calls:', error);
+        throw error;
+      }
+      
+      console.log('API calls fetched:', data?.length || 0);
+      return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && !authLoading
   });
 
   const copyApiKey = () => {
@@ -55,13 +69,43 @@ const Dashboard = () => {
     });
   };
 
-  if (!user || !profile) {
+  // Show loading state
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-white">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
           <div className="text-center">
             <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign in prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Please Sign In</h1>
+            <p className="text-gray-600">You need to sign in to access your dashboard.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show profile loading state
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="text-center">
+            <p className="text-gray-600">Loading your profile...</p>
           </div>
         </div>
       </div>
@@ -96,12 +140,12 @@ const Dashboard = () => {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{profile.full_name}</h3>
-                  <p className="text-sm text-gray-600">{profile.email}</p>
+                  <h3 className="font-semibold">{profile.full_name || 'User'}</h3>
+                  <p className="text-sm text-gray-600">{profile.email || user.email}</p>
                 </div>
               </div>
               <div className="text-sm text-gray-600">
-                <p>Member since {formatDate(profile.created_at)}</p>
+                <p>Member since {profile.created_at ? formatDate(profile.created_at) : 'Recently'}</p>
               </div>
             </CardContent>
           </Card>
@@ -117,7 +161,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-center">
                 <div className="text-3xl font-bold text-black mb-2">
-                  {profile.credits}
+                  {profile.credits || 0}
                 </div>
                 <p className="text-sm text-gray-600 mb-4">Available Credits</p>
                 <Button variant="outline" className="w-full">
@@ -138,9 +182,9 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-3">
                 <div className="bg-gray-50 p-3 rounded font-mono text-sm break-all">
-                  {profile.api_key}
+                  {profile.api_key || 'No API key available'}
                 </div>
-                <Button onClick={copyApiKey} variant="outline" className="w-full">
+                <Button onClick={copyApiKey} variant="outline" className="w-full" disabled={!profile.api_key}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy API Key
                 </Button>
@@ -158,8 +202,10 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {apiCallsLoading ? (
               <p className="text-gray-600">Loading API call history...</p>
+            ) : apiCallsError ? (
+              <p className="text-red-600">Error loading API calls. Please try again.</p>
             ) : apiCalls.length === 0 ? (
               <p className="text-gray-600">No API calls yet. Start using APIs to see your activity here.</p>
             ) : (
@@ -169,17 +215,17 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">{call.apis?.name || 'Unknown API'}</span>
-                        <Badge variant="outline">{call.method}</Badge>
+                        <Badge variant="outline">{call.method || 'GET'}</Badge>
                         <Badge variant={call.status_code >= 200 && call.status_code < 300 ? "default" : "destructive"}>
-                          {call.status_code}
+                          {call.status_code || 'N/A'}
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600">
-                        {call.endpoint} • {formatDate(call.created_at)}
+                        {call.endpoint || 'Unknown endpoint'} • {formatDate(call.created_at)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{call.credits_used} credits</p>
+                      <p className="text-sm font-medium">{call.credits_used || 0} credits</p>
                       {call.response_time && (
                         <p className="text-xs text-gray-600">{call.response_time}ms</p>
                       )}
